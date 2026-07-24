@@ -415,7 +415,6 @@
     </div>
 
     <script>
-        // Supabase Authentication Subsystem
         let supabaseClient = null;
         let currentAuthMode = 'login';
 
@@ -580,7 +579,6 @@
             }
         }
 
-        // Tab Switcher Logic
         function switchTab(tab) {
             const simView = document.getElementById('tabSimulatorView');
             const collegeView = document.getElementById('tabCollegeView');
@@ -606,7 +604,6 @@
             }
         }
 
-        // High School College Chance Calculator Logic
         async function calculateCollegeChances(event) {
             event.preventDefault();
             const btn = document.getElementById('predictBtn');
@@ -654,27 +651,23 @@
             }
         }
 
-        // Execution State Repositories
         let sessionHistory = [];
         let currentTrack = "";
         let isRecording = false;
         let finalTranscript = "";
         
-        // Native Performance Metrics Tracking Hooks
         let speechStartTime = null;
         let pauseTrackingTimeout = null;
         let totalWordsCount = 0;
         let detectedFillerHits = 0;
         let detectedFluencyDelays = 0;
 
-        // Web Audio Context Subsystem Elements
         let audioCtx = null;
         let audioAnalyser = null;
         let audioSource = null;
         let mediaStream = null;
         let animationFrameId = null;
 
-        // Speech Recognition Architecture Selection
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         let speechEngine = null;
 
@@ -687,14 +680,12 @@
             document.getElementById('questionDisplay').innerText = "Critical Warning: This browser does not support native Web Speech APIs. Please use Google Chrome or Microsoft Edge.";
         }
 
-        // US Context Alternative Transition Vocabulary Configurations
         const transitionalAlternatives = {
             "um": "Instead of executing a vocal stall like 'um', practice using stabilizing structural bridges: 'Certainly,' 'Consequently,' or pause silently for 1 second to gather focus.",
             "uh": "Replacing 'uh' with active professional connectors preserves vocal command. Leverage transitional hooks such as: 'Importantly,' 'Specifically,' or 'Moving forward.'",
             "like": "Using 'like' as a loose narrative filler dilutes data authority. Replace with analytical metrics indicators: 'For instance,' 'Namely,' or 'Particularly.'"
         };
 
-        // Render Highlighted Transcript and Bind Click Tooltips
         function renderHighlightedTranscript(text) {
             const container = document.getElementById('interactiveTranscriptDisplay');
             if (!text || text.trim() === "") {
@@ -742,7 +733,6 @@
             document.getElementById('fillerPopover').classList.add('hidden');
         });
 
-        // Initialize Simulator and Load a Question
         document.getElementById('startSessionBtn').addEventListener('click', async () => {
             currentTrack = document.getElementById('trackSelector').value;
             document.getElementById('questionDisplay').innerText = "Dynamically generating unique opening scenario prompt...";
@@ -784,7 +774,6 @@
             }
         });
 
-        // Toggle Audio Capture Pipelines
         document.getElementById('recordBtn').addEventListener('click', () => {
             if (!isRecording) {
                 startRecordingSequence();
@@ -794,7 +783,6 @@
             }
         });
 
-        // Trigger Adaptive Turn Advancement
         document.getElementById('nextQuestionBtn').addEventListener('click', async () => {
             if (!finalTranscript || finalTranscript.trim() === "") {
                 document.getElementById('questionDisplay').innerText = "Please record an answer voice track completely before proceeding.";
@@ -841,7 +829,6 @@
             }
         });
 
-        // Review Performance Matrix
         document.getElementById('endSessionBtn').addEventListener('click', async () => {
             if (isRecording) {
                 isRecording = false;
@@ -882,7 +869,6 @@
             }
         });
 
-        // Initialize Audio Streams
         async function startRecordingSequence() {
             if (!speechEngine) return;
             
@@ -913,7 +899,6 @@
             resetFluencyDelayTicker();
         }
 
-        // Web Audio Subsystem Waveform Canvas Rendering
         function initializeWebAudioSpectrum(stream) {
             audioCtx = new (window.AudioContext || window.webkitAudioContext)();
             audioAnalyser = audioCtx.createAnalyser();
@@ -952,7 +937,6 @@
             }
         }
 
-        // Native Live Fluency Tracker Interface Logic
         function resetFluencyDelayTicker() {
             clearTimeout(pauseTrackingTimeout);
             if (!isRecording) return;
@@ -966,7 +950,6 @@
             }, 3000);
         }
 
-        // Speech Engine Lifecycle Listeners
         if (speechEngine) {
             speechEngine.onresult = (event) => {
                 resetFluencyDelayTicker(); 
