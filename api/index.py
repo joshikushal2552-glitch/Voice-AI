@@ -126,7 +126,6 @@ def process_response():
     if not cleaned_transcript:
         return jsonify({"success": False, "error": "No new transcript text provided to advance the session conversation."}), 400
         
-    # Commit the user response explicitly to history log tracking if not already present
     if not history or history[-1].get('content') != cleaned_transcript:
         history.append({"role": "user", "content": cleaned_transcript})
     
@@ -231,7 +230,6 @@ def predict_college_chances():
     major = data.get('major', 'Computer Science / Engineering')
 
     if not groq_client:
-        # High quality algorithmic fallback
         return jsonify({
             "success": True,
             "reach": ["Harvard University", "Stanford University", "MIT"],
