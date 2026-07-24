@@ -1,0 +1,1038 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VoxCoach AI | High-Fidelity Communication Analytics & Admissions Predictor</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0fdfa',
+                            500: '#06b6d4',
+                            600: '#0891b2',
+                            700: '#0e7490',
+                            900: '#164e63',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .glassmorphic-card {
+            background: rgba(15, 23, 42, 0.65);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .glassmorphic-input {
+            background: rgba(2, 6, 23, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .skeleton-shimmer {
+            background: linear-gradient(90deg, rgba(255,255,255,0.03) 25%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.03) 75%);
+            background-size: 200% 100%;
+            animation: loading-shimmer 1.6s infinite linear;
+        }
+        @keyframes loading-shimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+        .glow-effect {
+            box-shadow: 0 0 25px -5px rgba(6, 182, 212, 0.25);
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 font-sans min-h-screen flex flex-col justify-between tracking-wide relative overflow-x-hidden">
+
+    <div id="fillerPopover" class="hidden absolute p-4 rounded-xl border border-cyan-500/40 bg-slate-900/95 shadow-2xl shadow-cyan-500/20 max-w-xs z-50 text-xs text-slate-300 leading-relaxed font-sans backdrop-blur-md">
+        <div class="font-bold text-cyan-400 mb-1 flex items-center gap-1.5">
+            <svg class="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+            VoxCoach Pro Tip:
+        </div>
+        <p id="popoverAlternativeText" class="mb-2 text-slate-200"></p>
+        <span class="text-[10px] text-slate-400 font-mono block border-t border-white/10 pt-1.5 mt-1">Alternative transitional phrases optimized for elite interviews.</span>
+    </div>
+
+    <header class="border-b border-white/10 bg-slate-950/80 backdrop-blur-xl px-6 py-4 flex items-center justify-between sticky top-0 z-50">
+        <div class="flex items-center space-x-3">
+            <div class="h-9 w-9 rounded-xl bg-gradient-to-tr from-cyan-500 via-blue-600 to-indigo-600 flex items-center justify-center font-black text-white text-lg shadow-lg shadow-cyan-500/30">V</div>
+            <div>
+                <span class="text-xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-white via-slate-200 to-cyan-400">VoxCoach AI</span>
+                <span class="hidden sm:inline-block text-[10px] bg-cyan-950/80 text-cyan-400 border border-cyan-500/30 rounded-full px-2 py-0.5 ml-2 font-mono">v2.5 Pro</span>
+            </div>
+        </div>
+
+        <nav class="flex items-center gap-1 bg-slate-900/90 border border-white/10 p-1 rounded-xl">
+            <button id="navSimBtn" onclick="switchTab('simulator')" class="px-4 py-1.5 rounded-lg text-xs font-semibold text-white bg-gradient-to-r from-cyan-600 to-blue-600 transition-all shadow-md">
+                🎙️ Interview Simulator
+            </button>
+            <button id="navCollegeBtn" onclick="switchTab('college')" class="px-4 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800 transition-all">
+                🎓 College Predictor
+            </button>
+        </nav>
+
+        <div class="flex items-center space-x-3">
+            <div id="authHeaderContainer" class="flex items-center space-x-3">
+                <button id="openAuthModalBtn" onclick="toggleAuthModal(true)" class="bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white text-xs font-bold px-3.5 py-1.5 rounded-xl shadow-md transition-all flex items-center gap-1.5">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/></svg>
+                    <span>Sign In</span>
+                </button>
+                <div id="userProfileBadge" class="hidden flex items-center gap-2 bg-slate-900/90 border border-white/10 px-3 py-1 rounded-xl">
+                    <div id="userAvatar" class="w-6 h-6 rounded-full bg-cyan-600 text-white text-[10px] font-bold flex items-center justify-center uppercase">U</div>
+                    <span id="userEmailDisplay" class="text-xs text-slate-300 font-mono max-w-[120px] sm:max-w-[180px] truncate">user@domain.com</span>
+                    <button onclick="handleSignOut()" title="Sign Out" class="text-slate-400 hover:text-rose-400 text-xs font-bold ml-1 transition-colors">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+                    </button>
+                </div>
+            </div>
+
+            <div class="hidden md:flex items-center space-x-2 border-l border-white/10 pl-3">
+                <span class="flex h-2.5 w-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span class="text-xs text-slate-400 font-mono tracking-widest uppercase">US-Context Engine</span>
+            </div>
+        </div>
+    </header>
+
+    <section class="max-w-7xl w-full mx-auto px-4 pt-8 pb-4">
+        <div class="glassmorphic-card rounded-3xl p-8 md:p-10 relative overflow-hidden border border-cyan-500/20 bg-gradient-to-r from-slate-900/90 via-slate-900/60 to-cyan-950/40 glow-effect">
+            <div class="absolute -right-16 -bottom-16 w-64 h-64 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none"></div>
+            <div class="max-w-3xl relative z-10">
+                <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-xs font-semibold mb-4">
+                    <span>⚡ Standardized Voice & High-Stakes Prep</span>
+                </div>
+                <h1 class="text-3xl md:text-5xl font-black text-white tracking-tight leading-tight">
+                    Eliminate Filler Words. <br/>
+                    <span class="bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 via-blue-400 to-indigo-300">Conquer Job & Ivy League Interviews.</span>
+                </h1>
+                <p class="mt-4 text-slate-300 text-sm md:text-base leading-relaxed">
+                    Trained on real US recruitment standards and elite university evaluation matrices. Practice voice responses in real-time, get instant feedback on speech speed (WPM), eliminate filler words ("um", "uh", "like"), and calculate your high school admissions chances with AI precision.
+                </p>
+                <div class="mt-6 flex flex-wrap items-center gap-4">
+                    <button onclick="switchTab('simulator')" class="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white text-xs font-bold px-6 py-3 rounded-xl shadow-lg shadow-cyan-500/25 transition-all">
+                        Launch Speech Coach
+                    </button>
+                    <button onclick="switchTab('college')" class="bg-slate-900 border border-white/15 hover:bg-slate-800 text-slate-200 text-xs font-bold px-6 py-3 rounded-xl transition-all">
+                        Predict College Chances
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 py-4">
+
+        <div id="tabSimulatorView" class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            
+            <section class="lg:col-span-7 flex flex-col space-y-6">
+                <div class="glassmorphic-card rounded-2xl p-6 flex flex-col items-center justify-center text-center relative overflow-hidden min-h-[460px]">
+                    
+                    <div class="absolute top-4 left-4 right-4 flex items-center justify-between z-10 gap-2">
+                        <select id="trackSelector" class="bg-slate-900/90 border border-white/15 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-cyan-500 transition-colors cursor-pointer font-medium shadow-inner">
+                            <option value="General Corporate Interview">US Corporate Recruitment Track</option>
+                            <option value="General College Admissions">Elite US Admissions Track</option>
+                        </select>
+                        <button id="startSessionBtn" class="bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white text-xs font-bold px-4 py-2 rounded-xl shadow-md transition-all duration-200">
+                            Start Simulator
+                        </button>
+                    </div>
+
+                    <div class="mt-12 mb-6 relative">
+                        <div id="avatarContainer" class="w-24 h-24 rounded-full bg-slate-900 border-2 border-slate-800 flex items-center justify-center shadow-inner relative z-10 transition-all duration-300">
+                            <svg id="avatarIcon" class="w-10 h-10 text-slate-500 transition-colors duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 100-6 3 3 0 000 6z"></path>
+                            </svg>
+                        </div>
+                        <div id="avatarPulse" class="absolute inset-0 rounded-full bg-cyan-500/20 scale-125 hidden animate-ping"></div>
+                    </div>
+
+                    <div class="w-full max-w-xl mx-auto z-10">
+                        <div class="bg-slate-950/60 border border-white/5 rounded-2xl p-4 mb-3">
+                            <p id="questionDisplay" class="text-slate-300 font-medium text-sm md:text-base leading-relaxed min-h-[60px]">
+                                Select your preferred track configuration above and click "Start Simulator" to initialize the dynamic interview engine...
+                            </p>
+                        </div>
+                        <div id="transcriptionFallback" class="mt-2 text-xs text-cyan-300 bg-cyan-950/30 border border-cyan-500/20 rounded-xl p-3 min-h-[50px] hidden max-w-md mx-auto font-mono text-left overflow-y-auto"></div>
+                    </div>
+
+                    <div class="w-full mt-4 h-14 relative">
+                        <canvas id="audioSpectrum" class="w-full h-full rounded-xl bg-slate-950/60 border border-white/5"></canvas>
+                        <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+                            <span id="waveformPlaceholder" class="text-slate-600 text-xs font-mono uppercase tracking-wider">Audio Stream Offline</span>
+                        </div>
+                    </div>
+
+                    <div class="mt-6 flex flex-wrap items-center justify-center gap-4">
+                        <button id="recordBtn" disabled class="bg-slate-900 border border-white/15 hover:bg-slate-800 disabled:opacity-40 text-slate-200 p-4 rounded-full transition-all duration-200 group relative" title="Toggle Voice Recording">
+                            <svg id="recordIcon" class="w-6 h-6 text-cyan-400 group-hover:scale-105 transition-transform" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8a1 1 0 10-2 0A5 5 0 015 8a1 1 0 00-2 0 7.001 7.001 0 006 6.93V17H6a1 1 0 100 2h8a1 1 0 100-2h-3v-2.07z" clip-rule="evenodd"></path>
+                            </svg>
+                        </button>
+
+                        <button id="nextQuestionBtn" disabled class="bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 disabled:from-slate-900 disabled:to-slate-900 disabled:opacity-40 border disabled:border-white/5 border-cyan-500/30 text-white text-xs font-bold px-5 py-3 rounded-xl shadow-md transition-all duration-200">
+                            Next Question
+                        </button>
+
+                        <button id="endSessionBtn" disabled class="bg-slate-900/90 hover:bg-slate-800 border border-white/15 disabled:opacity-40 text-xs font-bold px-5 py-3 rounded-xl text-slate-200 transition-all">
+                            Complete & Review Matrix
+                        </button>
+                    </div>
+
+                </div>
+            </section>
+
+            <section class="lg:col-span-5 flex flex-col space-y-6">
+                <div class="glassmorphic-card rounded-2xl p-6 flex flex-col h-full justify-between min-h-[460px]">
+                    <div>
+                        <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest border-b border-white/10 pb-3 flex items-center justify-between">
+                            <span>Session Metrics Diagnostic</span>
+                            <span class="text-[10px] text-cyan-400 font-mono">Live Processing</span>
+                        </h3>
+                        
+                        <div class="mt-6 space-y-6">
+                            <div>
+                                <div class="flex justify-between text-xs font-mono mb-2">
+                                    <span class="text-slate-400">Pace (Words Per Minute)</span>
+                                    <span id="wpmValue" class="text-cyan-400 font-bold">0 WPM</span>
+                                </div>
+                                <div class="w-full bg-slate-950 rounded-full h-2.5 overflow-hidden border border-white/10 relative">
+                                    <div id="wpmGauge" class="bg-gradient-to-r from-blue-500 via-cyan-400 to-emerald-400 h-full w-0 transition-all duration-500"></div>
+                                </div>
+                                <div class="flex justify-between text-[10px] text-slate-500 font-mono mt-1">
+                                    <span>Too Slow</span>
+                                    <span class="text-emerald-400 font-semibold">Optimal (110-150 WPM)</span>
+                                    <span>Too Fast</span>
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-4">
+                                <div class="bg-slate-950/80 border border-white/10 rounded-xl p-4 text-center">
+                                    <span class="block text-[10px] font-mono uppercase tracking-wider text-slate-400">Fluency Delays (>3s)</span>
+                                    <span id="pauseCount" class="text-2xl font-black text-amber-400 font-mono mt-1 block">0</span>
+                                </div>
+                                <div class="bg-slate-950/80 border border-white/10 rounded-xl p-4 text-center">
+                                    <span class="block text-[10px] font-mono uppercase tracking-wider text-slate-400">Filler Word Hits</span>
+                                    <span id="fillerCount" class="text-2xl font-black text-rose-400 font-mono mt-1 block">0</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-4 pt-4 border-t border-white/10">
+                        <span class="block text-[10px] font-mono uppercase tracking-wider text-slate-400 mb-2">Interactive Transcript & Filler Detector</span>
+                        <div id="interactiveTranscriptDisplay" class="bg-slate-950/80 border border-white/10 rounded-xl p-3 text-xs leading-relaxed max-h-[100px] overflow-y-auto text-slate-300 font-mono">
+                            No answers processed yet. Utter phrases like "um", "uh", or "like" during tracking to inspect highlighted transitions...
+                        </div>
+                    </div>
+
+                    <div class="mt-4 pt-4 border-t border-white/10 flex-1 flex flex-col justify-end">
+                        <span class="block text-[10px] font-mono uppercase tracking-wider text-slate-400 mb-2">Comprehensive Evaluation Matrix Output</span>
+                        <div id="critiqueOutput" class="bg-slate-950/90 border border-white/10 rounded-xl p-4 min-h-[130px] max-h-[180px] overflow-y-auto text-xs text-slate-300 leading-relaxed font-mono">
+                            <div id="analysisDefaultText">Awaiting submission context data metrics validation loop...</div>
+                            <div id="analysisSkeleton" class="hidden space-y-2.5 w-full">
+                                <div class="h-3 skeleton-shimmer rounded w-11/12"></div>
+                                <div class="h-3 skeleton-shimmer rounded w-full"></div>
+                                <div class="h-3 skeleton-shimmer rounded w-4/5"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </section>
+
+        </div>
+
+        <div id="tabCollegeView" class="hidden grid-cols-1 lg:grid-cols-12 gap-8">
+            
+            <section class="lg:col-span-5">
+                <div class="glassmorphic-card rounded-2xl p-6 border border-white/10">
+                    <h2 class="text-base font-bold text-white mb-1 flex items-center gap-2">
+                        <span>🎓 Academic Profile Estimator</span>
+                    </h2>
+                    <p class="text-xs text-slate-400 mb-6">Input your high school metrics to calculate college acceptance tiers.</p>
+
+                    <form id="collegePredictorForm" onsubmit="calculateCollegeChances(event)" class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-300 mb-1">Unweighted GPA (0.0 - 4.0)</label>
+                            <input type="number" id="inputGpa" step="0.01" min="1.0" max="4.0" value="3.85" required class="w-full glassmorphic-input rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-500">
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-300 mb-1">SAT Score (400-1600)</label>
+                                <input type="number" id="inputSat" min="400" max="1600" value="1450" placeholder="Optional" class="w-full glassmorphic-input rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-300 mb-1">ACT Score (1-36)</label>
+                                <input type="number" id="inputAct" min="1" max="36" value="32" placeholder="Optional" class="w-full glassmorphic-input rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-500">
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-300 mb-1">AP/IB/Honors Courses</label>
+                                <input type="number" id="inputApCount" min="0" max="25" value="6" required class="w-full glassmorphic-input rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-300 mb-1">Extracurricular Level</label>
+                                <select id="inputEcLevel" class="w-full glassmorphic-input rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-500 cursor-pointer">
+                                    <option value="Moderate">Moderate (Club Member)</option>
+                                    <option value="High" selected>High (Club President/Varsity)</option>
+                                    <option value="Elite">Elite (State/National Level)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-300 mb-1">Target Major</label>
+                            <input type="text" id="inputMajor" value="Computer Science / Engineering" required class="w-full glassmorphic-input rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-500">
+                        </div>
+
+                        <button type="submit" id="predictBtn" class="w-full bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-bold text-xs py-3 rounded-xl shadow-lg transition-all mt-4">
+                            Run Admissions Diagnostic
+                        </button>
+                    </form>
+                </div>
+            </section>
+
+            <section class="lg:col-span-7">
+                <div class="glassmorphic-card rounded-2xl p-6 border border-white/10 h-full flex flex-col justify-between">
+                    <div>
+                        <h2 class="text-base font-bold text-white mb-4 border-b border-white/10 pb-3">Admissions Tier Breakdown</h2>
+
+                        <div id="collegeResultsPlaceholder" class="text-center py-12 text-slate-500 text-xs">
+                            Fill in your academic profile on the left and click "Run Admissions Diagnostic" to generate your university matching matrix.
+                        </div>
+
+                        <div id="collegeResultsContent" class="hidden space-y-6">
+                            <div class="bg-cyan-950/30 border border-cyan-500/20 rounded-xl p-4">
+                                <span class="text-[10px] font-mono text-cyan-400 uppercase tracking-widest block mb-1">Holistic AI Assessment</span>
+                                <p id="chancesSummary" class="text-xs text-slate-200 leading-relaxed"></p>
+                            </div>
+
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div class="bg-rose-950/20 border border-rose-500/20 rounded-xl p-4">
+                                    <span class="text-[10px] font-bold text-rose-400 uppercase tracking-wider block mb-2">Reach (&lt;20% Chance)</span>
+                                    <ul id="reachList" class="text-xs text-slate-300 space-y-1.5 list-disc list-inside"></ul>
+                                </div>
+                                <div class="bg-amber-950/20 border border-amber-500/20 rounded-xl p-4">
+                                    <span class="text-[10px] font-bold text-amber-400 uppercase tracking-wider block mb-2">Target (40-70% Chance)</span>
+                                    <ul id="targetList" class="text-xs text-slate-300 space-y-1.5 list-disc list-inside"></ul>
+                                </div>
+                                <div class="bg-emerald-950/20 border border-emerald-500/20 rounded-xl p-4">
+                                    <span class="text-[10px] font-bold text-emerald-400 uppercase tracking-wider block mb-2">Safety (&gt;85% Chance)</span>
+                                    <ul id="safetyList" class="text-xs text-slate-300 space-y-1.5 list-disc list-inside"></ul>
+                                </div>
+                            </div>
+
+                            <div class="bg-slate-950/80 border border-white/10 rounded-xl p-4">
+                                <span class="text-[10px] font-mono text-slate-400 uppercase tracking-widest block mb-2">Strategies to Boost Admission Odds</span>
+                                <ul id="growthTipsList" class="text-xs text-slate-300 space-y-1.5 list-decimal list-inside"></ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-6 border-t border-white/10 pt-3 text-[10px] text-slate-500 font-mono">
+                        Note: College interview prep with VoxCoach AI elevates holistic score performance for Reach and Target institutions.
+                    </div>
+                </div>
+            </section>
+
+        </div>
+
+    </main>
+
+    <footer class="border-t border-white/10 py-4 text-center text-[10px] text-slate-500 font-mono">
+        &copy; 2026 VoxCoach AI. Structured Communication Systems & High School Career Engineering.
+    </footer>
+
+    <div id="authModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-4">
+        <div class="glassmorphic-card rounded-3xl max-w-md w-full p-6 md:p-8 relative border border-cyan-500/30 shadow-2xl shadow-cyan-500/10">
+            <button onclick="toggleAuthModal(false)" class="absolute top-4 right-4 text-slate-400 hover:text-white p-1 rounded-lg transition-colors">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+
+            <div class="text-center mb-6">
+                <div class="inline-flex h-12 w-12 rounded-2xl bg-gradient-to-tr from-cyan-500 to-blue-600 items-center justify-center text-white font-black text-xl mb-3 shadow-lg shadow-cyan-500/30">V</div>
+                <h2 id="authModalTitle" class="text-xl font-bold text-white">Welcome to VoxCoach AI</h2>
+                <p class="text-xs text-slate-400 mt-1">Sign in or create an account to manage your profile</p>
+            </div>
+
+            <div class="flex bg-slate-950/80 p-1 rounded-xl border border-white/10 mb-6">
+                <button id="authTabLogin" onclick="switchAuthMode('login')" class="flex-1 py-2 text-xs font-bold rounded-lg text-white bg-cyan-600 transition-all">Sign In</button>
+                <button id="authTabSignup" onclick="switchAuthMode('signup')" class="flex-1 py-2 text-xs font-bold rounded-lg text-slate-400 hover:text-white transition-all">Sign Up</button>
+            </div>
+
+            <button onclick="handleGoogleSignIn()" class="w-full bg-slate-900 border border-white/15 hover:bg-slate-800 text-white font-semibold text-xs py-3 px-4 rounded-xl flex items-center justify-center gap-3 transition-all mb-4">
+                <svg class="w-4 h-4" viewBox="0 0 24 24">
+                    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+                    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+                </svg>
+                Continue with Google
+            </button>
+
+            <div class="flex items-center my-4">
+                <div class="flex-1 border-t border-white/10"></div>
+                <span class="px-3 text-[10px] font-mono text-slate-500 uppercase">Or with Email</span>
+                <div class="flex-1 border-t border-white/10"></div>
+            </div>
+
+            <form id="authForm" onsubmit="handleEmailAuth(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">Email Address</label>
+                    <input type="email" id="authEmail" required placeholder="you@domain.com" class="w-full glassmorphic-input rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-cyan-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">Password</label>
+                    <input type="password" id="authPassword" required minlength="6" placeholder="••••••••" class="w-full glassmorphic-input rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-cyan-500">
+                </div>
+
+                <div id="authMessage" class="hidden text-xs p-3 rounded-xl border font-mono"></div>
+
+                <button type="submit" id="authSubmitBtn" class="w-full bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-bold text-xs py-3 rounded-xl shadow-lg transition-all">
+                    Sign In
+                </button>
+            </form>
+
+            <div id="supabaseConfigWarning" class="hidden mt-4 pt-4 border-t border-white/10 text-center">
+                <p class="text-[11px] text-amber-400 mb-2">Supabase credentials missing from backend env.</p>
+                <button onclick="toggleConfigInputs()" class="text-[10px] text-cyan-400 underline font-mono">Configure Credentials Locally</button>
+                <div id="configInputs" class="hidden mt-3 space-y-2 text-left">
+                    <input type="text" id="manualSupabaseUrl" placeholder="https://xyz.supabase.co" class="w-full glassmorphic-input rounded-xl px-3 py-1.5 text-xs text-white font-mono">
+                    <input type="password" id="manualSupabaseKey" placeholder="ey... anon key" class="w-full glassmorphic-input rounded-xl px-3 py-1.5 text-xs text-white font-mono">
+                    <button onclick="saveManualSupabaseConfig()" class="w-full bg-slate-800 hover:bg-slate-700 text-cyan-300 text-xs py-1.5 rounded-xl font-mono">Save Local Credentials</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Supabase Authentication Subsystem
+        let supabaseClient = null;
+        let currentAuthMode = 'login';
+
+        function initSupabase() {
+            const url = "{{ supabase_url }}" || localStorage.getItem('SUPABASE_URL') || '';
+            const key = "{{ supabase_anon_key }}" || localStorage.getItem('SUPABASE_ANON_KEY') || '';
+
+            if (url && key && window.supabase) {
+                try {
+                    supabaseClient = window.supabase.createClient(url, key);
+                    checkAuthState();
+                    supabaseClient.auth.onAuthStateChange((event, session) => {
+                        updateAuthUI(session ? session.user : null);
+                    });
+                    document.getElementById('supabaseConfigWarning').classList.add('hidden');
+                } catch (e) {
+                    console.error("Supabase initialization error:", e);
+                    document.getElementById('supabaseConfigWarning').classList.remove('hidden');
+                }
+            } else {
+                document.getElementById('supabaseConfigWarning').classList.remove('hidden');
+            }
+        }
+
+        function toggleAuthModal(show) {
+            const modal = document.getElementById('authModal');
+            if (show) {
+                modal.classList.remove('hidden');
+            } else {
+                modal.classList.add('hidden');
+                hideAuthMessage();
+            }
+        }
+
+        function switchAuthMode(mode) {
+            currentAuthMode = mode;
+            const loginTab = document.getElementById('authTabLogin');
+            const signupTab = document.getElementById('authTabSignup');
+            const submitBtn = document.getElementById('authSubmitBtn');
+            hideAuthMessage();
+
+            if (mode === 'login') {
+                loginTab.className = "flex-1 py-2 text-xs font-bold rounded-lg text-white bg-cyan-600 transition-all";
+                signupTab.className = "flex-1 py-2 text-xs font-bold rounded-lg text-slate-400 hover:text-white transition-all";
+                submitBtn.innerText = "Sign In";
+            } else {
+                signupTab.className = "flex-1 py-2 text-xs font-bold rounded-lg text-white bg-cyan-600 transition-all";
+                loginTab.className = "flex-1 py-2 text-xs font-bold rounded-lg text-slate-400 hover:text-white transition-all";
+                submitBtn.innerText = "Create Account";
+            }
+        }
+
+        function showAuthMessage(msg, isError = false) {
+            const el = document.getElementById('authMessage');
+            el.classList.remove('hidden', 'bg-rose-950/60', 'border-rose-500/40', 'text-rose-300', 'bg-emerald-950/60', 'border-emerald-500/40', 'text-emerald-300');
+            if (isError) {
+                el.classList.add('bg-rose-950/60', 'border-rose-500/40', 'text-rose-300');
+            } else {
+                el.classList.add('bg-emerald-950/60', 'border-emerald-500/40', 'text-emerald-300');
+            }
+            el.innerText = msg;
+        }
+
+        function hideAuthMessage() {
+            document.getElementById('authMessage').classList.add('hidden');
+        }
+
+        async function handleEmailAuth(event) {
+            event.preventDefault();
+            if (!supabaseClient) {
+                showAuthMessage("Supabase client is not initialized. Please configure credentials.", true);
+                return;
+            }
+
+            const email = document.getElementById('authEmail').value;
+            const password = document.getElementById('authPassword').value;
+            const submitBtn = document.getElementById('authSubmitBtn');
+            submitBtn.disabled = true;
+            submitBtn.innerText = "Processing...";
+
+            try {
+                if (currentAuthMode === 'login') {
+                    const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+                    if (error) throw error;
+                    showAuthMessage("Signed in successfully!");
+                    setTimeout(() => toggleAuthModal(false), 1000);
+                } else {
+                    const { data, error } = await supabaseClient.auth.signUp({ email, password });
+                    if (error) throw error;
+                    showAuthMessage("Account created! Check your email for verification if required.");
+                    setTimeout(() => toggleAuthModal(false), 2000);
+                }
+            } catch (err) {
+                showAuthMessage(err.message || "Authentication failed", true);
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerText = currentAuthMode === 'login' ? "Sign In" : "Create Account";
+            }
+        }
+
+        async function handleGoogleSignIn() {
+            if (!supabaseClient) {
+                showAuthMessage("Supabase client is not initialized. Please configure credentials.", true);
+                return;
+            }
+            try {
+                const { error } = await supabaseClient.auth.signInWithOAuth({
+                    provider: 'google',
+                    options: {
+                        redirectTo: window.location.origin
+                    }
+                });
+                if (error) throw error;
+            } catch (err) {
+                showAuthMessage(err.message || "Google OAuth failed", true);
+            }
+        }
+
+        async function handleSignOut() {
+            if (supabaseClient) {
+                await supabaseClient.auth.signOut();
+                updateAuthUI(null);
+            }
+        }
+
+        async function checkAuthState() {
+            if (!supabaseClient) return;
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            updateAuthUI(session ? session.user : null);
+        }
+
+        function updateAuthUI(user) {
+            const openBtn = document.getElementById('openAuthModalBtn');
+            const profileBadge = document.getElementById('userProfileBadge');
+            const emailDisplay = document.getElementById('userEmailDisplay');
+            const avatar = document.getElementById('userAvatar');
+
+            if (user) {
+                openBtn.classList.add('hidden');
+                profileBadge.classList.remove('hidden');
+                emailDisplay.innerText = user.email || 'Authenticated User';
+                avatar.innerText = (user.email || 'U').charAt(0).toUpperCase();
+            } else {
+                openBtn.classList.remove('hidden');
+                profileBadge.classList.add('hidden');
+            }
+        }
+
+        function toggleConfigInputs() {
+            const el = document.getElementById('configInputs');
+            el.classList.toggle('hidden');
+        }
+
+        function saveManualSupabaseConfig() {
+            const url = document.getElementById('manualSupabaseUrl').value.trim();
+            const key = document.getElementById('manualSupabaseKey').value.trim();
+            if (url && key) {
+                localStorage.setItem('SUPABASE_URL', url);
+                localStorage.setItem('SUPABASE_ANON_KEY', key);
+                initSupabase();
+                showAuthMessage("Credentials saved! Initializing Supabase...");
+            }
+        }
+
+        // Tab Switcher Logic
+        function switchTab(tab) {
+            const simView = document.getElementById('tabSimulatorView');
+            const collegeView = document.getElementById('tabCollegeView');
+            const simBtn = document.getElementById('navSimBtn');
+            const collegeBtn = document.getElementById('navCollegeBtn');
+
+            if (tab === 'simulator') {
+                simView.classList.remove('hidden');
+                simView.classList.add('grid');
+                collegeView.classList.add('hidden');
+                collegeView.classList.remove('grid');
+
+                simBtn.className = "px-4 py-1.5 rounded-lg text-xs font-semibold text-white bg-gradient-to-r from-cyan-600 to-blue-600 transition-all shadow-md";
+                collegeBtn.className = "px-4 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800 transition-all";
+            } else {
+                collegeView.classList.remove('hidden');
+                collegeView.classList.add('grid');
+                simView.classList.add('hidden');
+                simView.classList.remove('grid');
+
+                collegeBtn.className = "px-4 py-1.5 rounded-lg text-xs font-semibold text-white bg-gradient-to-r from-cyan-600 to-blue-600 transition-all shadow-md";
+                simBtn.className = "px-4 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800 transition-all";
+            }
+        }
+
+        // High School College Chance Calculator Logic
+        async function calculateCollegeChances(event) {
+            event.preventDefault();
+            const btn = document.getElementById('predictBtn');
+            btn.innerText = "Analyzing Academic Matrix...";
+            btn.disabled = true;
+
+            const payload = {
+                gpa: document.getElementById('inputGpa').value,
+                sat: document.getElementById('inputSat').value,
+                act: document.getElementById('inputAct').value,
+                ap_count: document.getElementById('inputApCount').value,
+                ec_level: document.getElementById('inputEcLevel').value,
+                major: document.getElementById('inputMajor').value
+            };
+
+            try {
+                const res = await fetch('/api/college/predict', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+
+                if (data.success) {
+                    document.getElementById('collegeResultsPlaceholder').classList.add('hidden');
+                    document.getElementById('collegeResultsContent').classList.remove('hidden');
+
+                    document.getElementById('chancesSummary').innerText = data.chances_summary;
+
+                    const renderList = (elementId, items) => {
+                        const el = document.getElementById(elementId);
+                        el.innerHTML = items.map(i => `<li>${i}</li>`).join('');
+                    };
+
+                    renderList('reachList', data.reach);
+                    renderList('targetList', data.target);
+                    renderList('safetyList', data.safety);
+                    renderList('growthTipsList', data.growth_tips);
+                }
+            } catch (err) {
+                console.error("College chance calculation error:", err);
+            } finally {
+                btn.innerText = "Run Admissions Diagnostic";
+                btn.disabled = false;
+            }
+        }
+
+        // Execution State Repositories
+        let sessionHistory = [];
+        let currentTrack = "";
+        let isRecording = false;
+        let finalTranscript = "";
+        
+        // Native Performance Metrics Tracking Hooks
+        let speechStartTime = null;
+        let pauseTrackingTimeout = null;
+        let totalWordsCount = 0;
+        let detectedFillerHits = 0;
+        let detectedFluencyDelays = 0;
+
+        // Web Audio Context Subsystem Elements
+        let audioCtx = null;
+        let audioAnalyser = null;
+        let audioSource = null;
+        let mediaStream = null;
+        let animationFrameId = null;
+
+        // Speech Recognition Architecture Selection
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        let speechEngine = null;
+
+        if (SpeechRecognition) {
+            speechEngine = new SpeechRecognition();
+            speechEngine.continuous = true;
+            speechEngine.interimResults = true;
+            speechEngine.lang = 'en-US';
+        } else {
+            document.getElementById('questionDisplay').innerText = "Critical Warning: This browser does not support native Web Speech APIs. Please use Google Chrome or Microsoft Edge.";
+        }
+
+        // US Context Alternative Transition Vocabulary Configurations
+        const transitionalAlternatives = {
+            "um": "Instead of executing a vocal stall like 'um', practice using stabilizing structural bridges: 'Certainly,' 'Consequently,' or pause silently for 1 second to gather focus.",
+            "uh": "Replacing 'uh' with active professional connectors preserves vocal command. Leverage transitional hooks such as: 'Importantly,' 'Specifically,' or 'Moving forward.'",
+            "like": "Using 'like' as a loose narrative filler dilutes data authority. Replace with analytical metrics indicators: 'For instance,' 'Namely,' or 'Particularly.'"
+        };
+
+        // Render Highlighted Transcript and Bind Click Tooltips
+        function renderHighlightedTranscript(text) {
+            const container = document.getElementById('interactiveTranscriptDisplay');
+            if (!text || text.trim() === "") {
+                container.innerText = "No vocal answers captured in this interaction turn window.";
+                return;
+            }
+
+            const tokens = text.split(/(\b(?:um|uh|like)\b)/i);
+            container.innerHTML = "";
+
+            tokens.forEach(token => {
+                const standardized = token.toLowerCase().trim();
+                if (transitionalAlternatives[standardized]) {
+                    const span = document.createElement('span');
+                    span.className = "bg-rose-950 text-rose-300 font-bold px-1.5 py-0.5 rounded border border-rose-800/80 cursor-pointer hover:bg-rose-900 transition-colors inline-block relative mx-0.5";
+                    span.innerText = token;
+                    
+                    span.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        showPopoverTooltip(e.target, standardized);
+                    });
+                    container.appendChild(span);
+                } else {
+                    container.appendChild(document.createTextNode(token));
+                }
+            });
+        }
+
+        function showPopoverTooltip(element, fillerWord) {
+            const popover = document.getElementById('fillerPopover');
+            const txt = document.getElementById('popoverAlternativeText');
+            
+            txt.innerText = transitionalAlternatives[fillerWord];
+            popover.classList.remove('hidden');
+
+            const rect = element.getBoundingClientRect();
+            const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
+            const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+
+            popover.style.left = `${rect.left + scrollLeft - 20}px`;
+            popover.style.top = `${rect.top + scrollTop - popover.offsetHeight - 12}px`;
+        }
+
+        document.addEventListener('click', () => {
+            document.getElementById('fillerPopover').classList.add('hidden');
+        });
+
+        // Initialize Simulator and Load a Question
+        document.getElementById('startSessionBtn').addEventListener('click', async () => {
+            currentTrack = document.getElementById('trackSelector').value;
+            document.getElementById('questionDisplay').innerText = "Dynamically generating unique opening scenario prompt...";
+            
+            try {
+                const res = await fetch('/api/session/start', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ track: currentTrack })
+                });
+                const data = await res.json();
+                
+                if (data.success) {
+                    sessionHistory = data.history;
+                    document.getElementById('questionDisplay').innerText = data.current_question;
+                    
+                    totalWordsCount = 0;
+                    detectedFillerHits = 0;
+                    detectedFluencyDelays = 0;
+                    finalTranscript = "";
+                    document.getElementById('fillerCount').innerText = "0";
+                    document.getElementById('pauseCount').innerText = "0";
+                    document.getElementById('wpmValue').innerText = "0 WPM";
+                    document.getElementById('wpmGauge').style.width = "0%";
+                    document.getElementById('transcriptionFallback').innerText = "";
+                    document.getElementById('transcriptionFallback').classList.add('hidden');
+                    document.getElementById('interactiveTranscriptDisplay').innerText = "No answers processed yet. Utter phrases like \"um\", \"uh\", or \"like\" during tracking to inspect highlighted transitions...";
+                    document.getElementById('critiqueOutput').innerHTML = '<div id="analysisDefaultText">Awaiting response collection window loop...</div>';
+                    
+                    document.getElementById('recordBtn').removeAttribute('disabled');
+                    document.getElementById('endSessionBtn').removeAttribute('disabled');
+                    document.getElementById('nextQuestionBtn').setAttribute('disabled', 'true');
+                } else {
+                    document.getElementById('questionDisplay').innerText = "Failed to launch context: " + data.error;
+                }
+            } catch (err) {
+                console.error("Failed to map initial session routing metrics:", err);
+                document.getElementById('questionDisplay').innerText = "Server pipeline error launching session context.";
+            }
+        });
+
+        // Toggle Audio Capture Pipelines
+        document.getElementById('recordBtn').addEventListener('click', () => {
+            if (!isRecording) {
+                startRecordingSequence();
+            } else {
+                isRecording = false;
+                if (speechEngine) speechEngine.stop();
+            }
+        });
+
+        // Trigger Adaptive Turn Advancement
+        document.getElementById('nextQuestionBtn').addEventListener('click', async () => {
+            if (!finalTranscript || finalTranscript.trim() === "") {
+                document.getElementById('questionDisplay').innerText = "Please record an answer voice track completely before proceeding.";
+                return;
+            }
+
+            document.getElementById('nextQuestionBtn').setAttribute('disabled', 'true');
+            document.getElementById('recordBtn').setAttribute('disabled', 'true');
+            document.getElementById('questionDisplay').innerText = "Processing response records through rapid inference engine...";
+            
+            if (!sessionHistory.some(turn => turn.content === finalTranscript.trim())) {
+                sessionHistory.push({ "role": "user", "content": finalTranscript.trim() });
+            }
+
+            try {
+                const res = await fetch('/api/session/respond', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        transcript: finalTranscript,
+                        history: sessionHistory,
+                        track: currentTrack
+                    })
+                });
+                const data = await res.json();
+                
+                document.getElementById('recordBtn').removeAttribute('disabled');
+                
+                if (data.success) {
+                    sessionHistory = data.history;
+                    document.getElementById('questionDisplay').innerText = data.next_question;
+                    
+                    finalTranscript = "";
+                    document.getElementById('transcriptionFallback').innerText = "";
+                    document.getElementById('transcriptionFallback').classList.add('hidden');
+                } else {
+                    document.getElementById('questionDisplay').innerText = "Error: " + data.error;
+                    document.getElementById('nextQuestionBtn').removeAttribute('disabled');
+                }
+            } catch (err) {
+                console.error("Pipeline breakdown sending response turn:", err);
+                document.getElementById('questionDisplay').innerText = "Network connection drop encountered.";
+                document.getElementById('recordBtn').removeAttribute('disabled');
+            }
+        });
+
+        // Review Performance Matrix
+        document.getElementById('endSessionBtn').addEventListener('click', async () => {
+            if (isRecording) {
+                isRecording = false;
+                if (speechEngine) speechEngine.stop();
+            }
+
+            let historyPayload = [...sessionHistory];
+            if (finalTranscript && finalTranscript.trim() !== "") {
+                if (!historyPayload.some(turn => turn.content === finalTranscript.trim())) {
+                    historyPayload.push({ "role": "user", "content": finalTranscript.trim() });
+                }
+            }
+
+            const outputBox = document.getElementById('critiqueOutput');
+            outputBox.innerHTML = `
+                <div id="analysisSkeleton" class="space-y-2.5 w-full">
+                    <div class="h-3 skeleton-shimmer rounded w-11/12"></div>
+                    <div class="h-3 skeleton-shimmer rounded w-full"></div>
+                    <div class="h-3 skeleton-shimmer rounded w-4/5"></div>
+                </div>
+            `;
+
+            try {
+                const res = await fetch('/api/session/analyze', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ history: historyPayload })
+                });
+                const data = await res.json();
+                
+                if (data.success) {
+                    outputBox.innerHTML = `<div class="whitespace-pre-line text-slate-300 font-sans">${data.analysis}</div>`;
+                } else {
+                    outputBox.innerHTML = `<div class="text-rose-400 font-mono">Error generating analysis: ${data.error}</div>`;
+                }
+            } catch (err) {
+                outputBox.innerHTML = `<div class="text-rose-400 font-mono">Network error connection drop during diagnostic computation.</div>`;
+            }
+        });
+
+        // Initialize Audio Streams
+        async function startRecordingSequence() {
+            if (!speechEngine) return;
+            
+            isRecording = true;
+            speechStartTime = Date.now();
+            document.getElementById('transcriptionFallback').classList.remove('hidden');
+            document.getElementById('transcriptionFallback').innerText = "Listening to vocal input stream...";
+            
+            document.getElementById('avatarContainer').classList.remove('border-slate-800');
+            document.getElementById('avatarContainer').classList.add('border-cyan-500', 'shadow-cyan-500/30');
+            document.getElementById('avatarIcon').classList.remove('text-slate-500');
+            document.getElementById('avatarIcon').classList.add('text-cyan-400');
+            document.getElementById('avatarPulse').classList.remove('hidden');
+            document.getElementById('recordBtn').classList.remove('bg-slate-900');
+            document.getElementById('recordBtn').classList.add('bg-cyan-950', 'border-cyan-500/50');
+            
+            try {
+                mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+                initializeWebAudioSpectrum(mediaStream);
+            } catch (err) {
+                console.error("Microphone hardware access blocked:", err);
+                document.getElementById('waveformPlaceholder').innerText = "Mic Hardware Blocked";
+                isRecording = false;
+                return;
+            }
+
+            speechEngine.start();
+            resetFluencyDelayTicker();
+        }
+
+        // Web Audio Subsystem Waveform Canvas Rendering
+        function initializeWebAudioSpectrum(stream) {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            audioAnalyser = audioCtx.createAnalyser();
+            audioSource = audioCtx.createMediaStreamSource(stream);
+            
+            audioSource.connect(audioAnalyser);
+            audioAnalyser.fftSize = 64; 
+            
+            const bufferLength = audioAnalyser.frequencyBinCount;
+            const dataArray = new Uint8Array(bufferLength);
+            
+            const canvas = document.getElementById('audioSpectrum');
+            const canvasCtx = canvas.getContext('2d');
+            document.getElementById('waveformPlaceholder').classList.add('hidden');
+            
+            mixSpectrumFrames();
+            
+            function mixSpectrumFrames() {
+                if (!isRecording) return;
+                animationFrameId = requestAnimationFrame(mixSpectrumFrames);
+                
+                audioAnalyser.getByteFrequencyData(dataArray);
+                canvasCtx.fillStyle = 'rgba(2, 6, 23, 0.4)';
+                canvasCtx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                const barWidth = (canvas.width / bufferLength) * 1.5;
+                let barHeight;
+                let x = 0;
+                
+                for (let i = 0; i < bufferLength; i++) {
+                    barHeight = dataArray[i] / 2.5;
+                    canvasCtx.fillStyle = `rgba(34, 211, 238, ${0.4 + (barHeight / canvas.height)})`;
+                    canvasCtx.fillRect(x, canvas.height - barHeight, barWidth, barHeight);
+                    x += barWidth + 4;
+                }
+            }
+        }
+
+        // Native Live Fluency Tracker Interface Logic
+        function resetFluencyDelayTicker() {
+            clearTimeout(pauseTrackingTimeout);
+            if (!isRecording) return;
+            
+            pauseTrackingTimeout = setTimeout(() => {
+                if (isRecording) {
+                    detectedFluencyDelays++;
+                    document.getElementById('pauseCount').innerText = detectedFluencyDelays;
+                    resetFluencyDelayTicker();
+                }
+            }, 3000);
+        }
+
+        // Speech Engine Lifecycle Listeners
+        if (speechEngine) {
+            speechEngine.onresult = (event) => {
+                resetFluencyDelayTicker(); 
+                let cumulativeText = "";
+                
+                for (let i = 0; i < event.results.length; ++i) {
+                    cumulativeText += event.results[i][0].transcript + " ";
+                }
+                
+                finalTranscript = cumulativeText.trim();
+                document.getElementById('transcriptionFallback').innerText = finalTranscript;
+                
+                renderHighlightedTranscript(finalTranscript);
+                
+                const matches = finalTranscript.toLowerCase().match(/\b(um|uh|like)\b/g);
+                detectedFillerHits = matches ? matches.length : 0;
+                document.getElementById('fillerCount').innerText = detectedFillerHits;
+                
+                const splitTextArray = finalTranscript.split(/\s+/).filter(w => w.length > 0);
+                totalWordsCount = splitTextArray.length;
+                
+                if (speechStartTime && totalWordsCount > 0) {
+                    const elapsedMinutes = (Date.now() - speechStartTime) / 60000;
+                    if (elapsedMinutes > 0.05) {
+                        const calculatedWPM = Math.round(totalWordsCount / elapsedMinutes);
+                        document.getElementById('wpmValue').innerText = `${calculatedWPM} WPM`;
+                        const percentageGaugeWidth = Math.min((calculatedWPM / 200) * 100, 100);
+                        document.getElementById('wpmGauge').style.width = `${percentageGaugeWidth}%`;
+                    }
+                }
+            };
+
+            speechEngine.onerror = (err) => {
+                console.error("Vocal recognition error captured:", err.error);
+                resetFluencyDelayTicker();
+            };
+
+            speechEngine.onend = () => {
+                document.getElementById('avatarContainer').className = "w-24 h-24 rounded-full bg-slate-900 border-2 border-slate-800 flex items-center justify-center shadow-inner relative z-10 transition-all duration-300";
+                document.getElementById('avatarIcon').className = "w-10 h-10 text-slate-500 transition-colors duration-300";
+                document.getElementById('avatarPulse').classList.add('hidden');
+                document.getElementById('waveformPlaceholder').classList.remove('hidden');
+                document.getElementById('waveformPlaceholder').innerText = "Audio Input Offline";
+                document.getElementById('recordBtn').className = "bg-slate-900 border border-white/15 hover:bg-slate-800 disabled:opacity-40 text-slate-200 p-4 rounded-full transition-all duration-200 group relative";
+                
+                clearTimeout(pauseTrackingTimeout);
+                
+                if (mediaStream) {
+                    mediaStream.getTracks().forEach(track => track.stop());
+                }
+                if (animationFrameId) {
+                    cancelAnimationFrame(animationFrameId);
+                }
+                if (audioCtx) {
+                    try { audioCtx.close(); } catch(e) {}
+                }
+
+                if (finalTranscript && finalTranscript.trim() !== "") {
+                    document.getElementById('nextQuestionBtn').removeAttribute('disabled');
+                }
+            };
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            initSupabase();
+        });
+    </script>
+</body>
+</html>
